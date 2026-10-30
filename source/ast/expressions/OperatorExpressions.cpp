@@ -2031,7 +2031,8 @@ Expression& ConcatenationExpression::fromSyntax(Compilation& comp,
             break;
         }
 
-        if (arg->isUnsizedInteger() && !unsizedWarned) {
+        if (arg->isUnsizedInteger() && !unsizedWarned &&
+            !context.flags.has(ASTFlags::ReplicationCount)) {
             context.addDiag(diag::UnsizedInConcat, arg->sourceRange) << type.getBitWidth();
             unsizedWarned = true;
         }
@@ -2274,7 +2275,10 @@ void ConcatenationExpression::serializeTo(ASTSerializer& serializer) const {
 Expression& ReplicationExpression::fromSyntax(Compilation& compilation,
                                               const MultipleConcatenationExpressionSyntax& syntax,
                                               const ASTContext& context) {
-    Expression& left = selfDetermined(compilation, *syntax.expression, context);
+    ASTContext count_context = context;
+
+    Expression& left = selfDetermined(compilation, *syntax.expression, count_context,
+                                      ASTFlags::ReplicationCount);
     Expression* right = &create(compilation, *syntax.concatenation, context);
 
     auto result = compilation.emplace<ReplicationExpression>(compilation.getErrorType(), left,

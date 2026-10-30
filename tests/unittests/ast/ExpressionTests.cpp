@@ -1389,6 +1389,29 @@ endmodule
     CHECK(diags[8].code == diag::BadConcatExpression);
 }
 
+TEST_CASE("Unsized replication count doesn't warn about concat width") {
+    auto tree = SyntaxTree::fromText(R"(
+module m;
+    logic [3:0] foo;
+    logic [15:0] a;
+    logic [19:0] b;
+    logic [63:0] c;
+    logic [3:0] d;
+    assign a = {{4}{foo}};
+    assign b = {foo, {4{foo}}};
+    assign c = {1, 2};
+    assign d = {{{1}}{foo}};
+endmodule
+)");
+
+    Compilation compilation;
+    compilation.addSyntaxTree(tree);
+
+    auto& diags = compilation.getAllDiagnostics();
+    REQUIRE(diags.size() == 1);
+    CHECK(diags[0].code == diag::UnsizedInConcat);
+}
+
 TEST_CASE("Empty array concatenations") {
     auto tree = SyntaxTree::fromText(R"(
 module m;
